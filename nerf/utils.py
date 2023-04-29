@@ -5,7 +5,7 @@ import math
 import imageio
 import random
 import warnings
-import tensorboardX
+# import tensorboardX
 
 import numpy as np
 import pandas as pd
@@ -34,6 +34,9 @@ import torchvision.transforms as T
 from torchmetrics import PearsonCorrCoef
 
 from packaging import version as pver
+
+import wandb
+wandb.login(key="996ee27de02ee214ded37d491317d5a0567f6dc8")
 
 def custom_meshgrid(*args):
     # ref: https://pytorch.org/docs/stable/generated/torch.meshgrid.html?highlight=meshgrid#torch.meshgrid
@@ -219,7 +222,7 @@ class Trainer(object):
                  use_loss_as_metric=True, # use loss as the first metric
                  report_metric_at_train=False, # also report metrics at training
                  use_checkpoint="latest", # which ckpt to use at init time
-                 use_tensorboardX=True, # whether to use tensorboard for logging
+                #  use_tensorboardX=True, # whether to use tensorboard for logging
                  scheduler_update_every_step=False, # whether to call scheduler.step() after every train step
                  ):
         
@@ -238,7 +241,7 @@ class Trainer(object):
         self.max_keep_ckpt = max_keep_ckpt
         self.eval_interval = eval_interval
         self.use_checkpoint = use_checkpoint
-        self.use_tensorboardX = use_tensorboardX
+        # self.use_tensorboardX = use_tensorboardX
         self.time_stamp = time.strftime("%Y-%m-%d_%H-%M-%S")
         self.scheduler_update_every_step = scheduler_update_every_step
         self.device = device if device is not None else torch.device(f'cuda:{local_rank}' if torch.cuda.is_available() else 'cpu')
@@ -635,8 +638,8 @@ class Trainer(object):
 
         assert self.text_z is not None, 'Training must provide a text prompt!'
         
-        if self.use_tensorboardX and self.local_rank == 0:
-            self.writer = tensorboardX.SummaryWriter(os.path.join(self.workspace, "run", self.name))
+        # if self.use_tensorboardX and self.local_rank == 0:
+        #     self.writer = tensorboardX.SummaryWriter(os.path.join(self.workspace, "run", self.name))
 
         start_t = time.time()
         
@@ -653,13 +656,13 @@ class Trainer(object):
 
         self.log(f"[INFO] training takes {(end_t - start_t)/ 60:.4f} minutes.")
 
-        if self.use_tensorboardX and self.local_rank == 0:
-            self.writer.close()
+        # if self.use_tensorboardX and self.local_rank == 0:
+        #     self.writer.close()
 
     def evaluate(self, loader, name=None):
-        self.use_tensorboardX, use_tensorboardX = False, self.use_tensorboardX
+        # self.use_tensorboardX, use_tensorboardX = False, self.use_tensorboardX
         self.evaluate_one_epoch(loader, name)
-        self.use_tensorboardX = use_tensorboardX
+        # self.use_tensorboardX = use_tensorboardX
 
     def test(self, loader, save_path=None, name=None, write_video=True):
 
@@ -785,9 +788,11 @@ class Trainer(object):
 
             if self.local_rank == 0:
 
-                if self.use_tensorboardX:
-                    self.writer.add_scalar("train/loss", loss_val, self.global_step)
-                    self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
+                # if self.use_tensorboardX:
+                wandb.log({"train/loss": loss_val})
+                wandb.log({"train/lr": self.optimizer.param_groups[0]['lr']})
+                # self.writer.add_scalar("train/loss", loss_val, self.global_step)
+                # self.writer.add_scalar("train/lr", self.optimizer.param_groups[0]['lr'], self.global_step)
 
                 if self.scheduler_update_every_step:
                     pbar.set_description(f"loss={loss_val:.4f} ({total_loss/self.local_step:.4f}), lr={self.optimizer.param_groups[0]['lr']:.6f}")
@@ -806,8 +811,8 @@ class Trainer(object):
             if self.report_metric_at_train:
                 for metric in self.metrics:
                     self.log(metric.report(), style="red")
-                    if self.use_tensorboardX:
-                        metric.write(self.writer, self.epoch, prefix="train")
+                    # if self.use_tensorboardX:
+                    metric.write(self.writer, self.epoch, prefix="train")
                     metric.clear()
 
         if not self.scheduler_update_every_step:
