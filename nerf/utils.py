@@ -594,8 +594,8 @@ class Trainer(object):
 
 
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs) = vis
-            pred_depth = self.depth_visualize(pred_depth)
-            depth_pred_mask = self.depth_visualize(depth_pred_mask)
+            pred_depth = self.depth_visualize(pred_depth).to(pred_rgb.device)
+            depth_pred_mask = self.depth_visualize(depth_pred_mask).to(pred_rgb.device)
             stack = torch.stack([pred_rgb.squeeze(0), gt_rgb.squeeze(0), pred_depth, depth_pred_mask, de_imgs.squeeze(0)])
 
 
