@@ -1089,11 +1089,15 @@ def viz_inv_depth(inv_depth, normalizer=None, percentile=95,
     return cm(np.clip(inv_depth, 0., 1.0))[:, :, :3]
 
 if __name__ == "__main__":
-    depth = torch.randn((1,1,512,512))
+    depth = torch.randn((1,3,512,512))
+    rgb = torch.randn((1,3,512,512))
 
-    inv_depth = depth2inv(depth)
-    depth_vis = viz_inv_depth(inv_depth)
+    vis = torch.stack((rgb, depth))
+    print(vis.shape)
+    # inv_depth = depth2inv(depth)
+    # depth_vis = viz_inv_depth(inv_depth)
 
-    print(depth_vis.shape)
+    # print(depth_vis.shape)
+
 
     
