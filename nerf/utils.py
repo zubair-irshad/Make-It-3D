@@ -582,21 +582,21 @@ class Trainer(object):
     def depth_visualize(self, pred_depth):
         inv_depth = depth2inv(pred_depth)
         depth_vis = viz_inv_depth(inv_depth)
-        return torch.FloatTensor(depth_vis).permute(2, 0, 1).unsqueeze(0)
+        return torch.FloatTensor(depth_vis).permute(2, 0, 1)
 
     def visualize_train(self, vis, de = False):
         if not de:
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask) = vis
             pred_depth = self.depth_visualize(pred_depth).to(pred_rgb.device)
             depth_pred_mask = self.depth_visualize(depth_pred_mask).to(pred_rgb.device)
-            stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask])  # (6, 3, H, W)
+            stack = torch.stack([pred_rgb.squeeze(0), gt_rgb.squeeze(0), pred_depth, depth_pred_mask])  # (6, 3, H, W)
         else:
 
 
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs) = vis
             pred_depth = self.depth_visualize(pred_depth)
             depth_pred_mask = self.depth_visualize(depth_pred_mask)
-            stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs])
+            stack = torch.stack([pred_rgb.squeeze(0), gt_rgb.squeeze(0), pred_depth, depth_pred_mask, de_imgs.squeeze(0)])
 
 
         grid = make_grid(stack, nrow=2)
@@ -607,7 +607,7 @@ class Trainer(object):
         (pred_rgb, pred_depth) = vis
 
         pred_depth = self.depth_visualize(pred_depth).to(pred_rgb.device)
-        stack = torch.stack([pred_rgb, pred_depth])
+        stack = torch.stack([pred_rgb.squeeze(0), pred_depth])
 
         grid = make_grid(stack, nrow=1)
         img = T.ToPILImage()(grid)
