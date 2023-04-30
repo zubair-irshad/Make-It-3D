@@ -580,7 +580,7 @@ class Trainer(object):
 
 
     def visualize_train(self, vis, de = False):
-        if de:
+        if not de:
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask) = vis
             stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask])  # (6, 3, H, W)
         else:
