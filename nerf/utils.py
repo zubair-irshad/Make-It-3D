@@ -564,12 +564,12 @@ class Trainer(object):
 
             vis = (pred_rgb, gt_rgb, pred_depth, self.depth_prediction * (~self.depth_mask))
             de = False
-            save_image(pred_rgb, os.path.join(self.img_path,  f'{self.global_step}.png'))
-            save_image(gt_rgb, os.path.join(self.img_path,  f'{self.global_step}_gt.png'))
-            save_image(pred_depth, os.path.join(self.img_path,  f'{self.global_step}_depth.png'))
-            save_image(self.depth_prediction * (~self.depth_mask), os.path.join(self.img_path,  f'{self.global_step}_ref_depth_mask.png'))
+            # save_image(pred_rgb, os.path.join(self.img_path,  f'{self.global_step}.png'))
+            # save_image(gt_rgb, os.path.join(self.img_path,  f'{self.global_step}_gt.png'))
+            # save_image(pred_depth, os.path.join(self.img_path,  f'{self.global_step}_depth.png'))
+            # save_image(self.depth_prediction * (~self.depth_mask), os.path.join(self.img_path,  f'{self.global_step}_ref_depth_mask.png'))
             if de_imgs is not None:
-                save_image(de_imgs, os.path.join(self.img_path,  f'{self.global_step}_denoise.png'))
+                # save_image(de_imgs, os.path.join(self.img_path,  f'{self.global_step}_denoise.png'))
                 vis = (pred_rgb, gt_rgb, pred_depth, self.depth_prediction * (~self.depth_mask), de_imgs)
                 de = True
         
@@ -579,12 +579,24 @@ class Trainer(object):
         return pred_rgb, pred_ws, loss
 
 
+    def depth_visualize(self, pred_depth):
+        inv_depth = depth2inv(pred_depth)
+        depth_vis = viz_inv_depth(inv_depth)
+        return torch.FloatTensor(depth_vis).permute(2, 0, 1).unsqueeze(0)
+
     def visualize_train(self, vis, de = False):
         if not de:
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask) = vis
-            stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask])  # (6, 3, H, W)
+
+            pred_depth = self.depth_visualize(pred_depth)
+            depth_pred_mask = self.depth_visualize(depth_pred_mask)
+            stack = torch.stack([pred_rgb.squeeze(0), gt_rgb.squeeze(0), pred_depth, depth_pred_mask])  # (6, 3, H, W)
         else:
+
+
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs) = vis
+            pred_depth = self.depth_visualize(pred_depth)
+            depth_pred_mask = self.depth_visualize(depth_pred_mask)
             stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs])
 
 
@@ -594,7 +606,9 @@ class Trainer(object):
     
     def visualize_val(self, vis):
         (pred_rgb, pred_depth) = vis
-        stack = torch.stack([pred_rgb, pred_depth])
+
+        pred_depth = self.depth_visualize(pred_depth)
+        stack = torch.stack([pred_rgb.squeeze(0), pred_depth])
 
         grid = make_grid(stack, nrow=1)
         img = T.ToPILImage()(grid)
@@ -1068,13 +1082,11 @@ def viz_inv_depth(inv_depth, normalizer=None, percentile=95,
         # if len(inv_depth.shape) == 3:
         #     inv_depth = inv_depth.squeeze(0)
         inv_depth = inv_depth.detach().cpu().numpy()
-    print("inv_depth", inv_depth.shape)
     cm = get_cmap(colormap)
     if normalizer is None:
         normalizer = np.percentile(
             inv_depth[inv_depth > 0] if filter_zeros else inv_depth, percentile)
     inv_depth /= (normalizer + 1e-6)
-    print("inv depth", inv_depth.shape)
     return cm(np.clip(inv_depth, 0., 1.0))[:, :, :3]
 
 if __name__ == "__main__":
@@ -1084,4 +1096,5 @@ if __name__ == "__main__":
     depth_vis = viz_inv_depth(inv_depth)
 
     print(depth_vis.shape)
+
     
