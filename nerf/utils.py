@@ -37,6 +37,7 @@ from packaging import version as pver
 
 import wandb
 wandb.login(key="996ee27de02ee214ded37d491317d5a0567f6dc8")
+wandb.init(project="generalizable-scene-representations")
 
 def custom_meshgrid(*args):
     # ref: https://pytorch.org/docs/stable/generated/torch.meshgrid.html?highlight=meshgrid#torch.meshgrid
@@ -811,6 +812,7 @@ class Trainer(object):
             if self.report_metric_at_train:
                 for metric in self.metrics:
                     self.log(metric.report(), style="red")
+                    wandb.log({"train/loss": loss_val})
                     # if self.use_tensorboardX:
                     metric.write(self.writer, self.epoch, prefix="train")
                     metric.clear()

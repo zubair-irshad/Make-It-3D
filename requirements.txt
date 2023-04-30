@@ -18,3 +18,5 @@ timm
 einops
 torchmetrics
 torch-ema
+wandb
+transformers
