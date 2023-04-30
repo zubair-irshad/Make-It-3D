@@ -38,7 +38,7 @@ from torchvision.utils import make_grid
 
 import wandb
 wandb.login(key="996ee27de02ee214ded37d491317d5a0567f6dc8")
-wandb.init(project="generalizable-scene-representations")
+wandb.init(project="make-it-3d", tags = ["first_stage"])
 
 def custom_meshgrid(*args):
     # ref: https://pytorch.org/docs/stable/generated/torch.meshgrid.html?highlight=meshgrid#torch.meshgrid
