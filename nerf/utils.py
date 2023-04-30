@@ -34,6 +34,7 @@ import torchvision.transforms as T
 from torchmetrics import PearsonCorrCoef
 
 from packaging import version as pver
+from torchvision.utils import make_grid
 
 import wandb
 wandb.login(key="996ee27de02ee214ded37d491317d5a0567f6dc8")
@@ -560,15 +561,44 @@ class Trainer(object):
                         self.opt.lambda_clip * self.img_text_clip_loss(pred_rgb, text)
 
         if self.global_step % 100 == 0 or self.global_step == 1:
+
+            vis = (pred_rgb, gt_rgb, pred_depth, self.depth_prediction * (~self.depth_mask))
+            de = False
             save_image(pred_rgb, os.path.join(self.img_path,  f'{self.global_step}.png'))
             save_image(gt_rgb, os.path.join(self.img_path,  f'{self.global_step}_gt.png'))
             save_image(pred_depth, os.path.join(self.img_path,  f'{self.global_step}_depth.png'))
             save_image(self.depth_prediction * (~self.depth_mask), os.path.join(self.img_path,  f'{self.global_step}_ref_depth_mask.png'))
             if de_imgs is not None:
                 save_image(de_imgs, os.path.join(self.img_path,  f'{self.global_step}_denoise.png'))
+                vis = (pred_rgb, gt_rgb, pred_depth, self.depth_prediction * (~self.depth_mask), de_imgs)
+                de = True
         
+            grid_img = self.visualize_train(vis, de)
+            wandb.log({"train/GT_pred rgb": wandb.Image(grid_img)})
         loss = loss + loss_ref   # loss_depth = 0.01 * self.opt.lambda_img * (self.img_loss(pred_depth, self.depth_prediction) + 1e-2)
         return pred_rgb, pred_ws, loss
+
+
+    def visualize_train(self, vis, de = False):
+        if de:
+            (pred_rgb, gt_rgb, pred_depth, depth_pred_mask) = vis
+            stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask])  # (6, 3, H, W)
+        else:
+            (pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs) = vis
+            stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask, de_imgs])
+
+
+        grid = make_grid(stack, nrow=2)
+        img = T.ToPILImage()(grid)
+        return img
+    
+    def visualize_val(self, vis):
+        (pred_rgb, pred_depth) = vis
+        stack = torch.stack([pred_rgb, pred_depth])
+
+        grid = make_grid(stack, nrow=1)
+        img = T.ToPILImage()(grid)
+        return img
 
     def eval_step(self, data):
 
@@ -638,7 +668,7 @@ class Trainer(object):
     def train(self, train_loader, valid_loader, max_epochs):
 
         assert self.text_z is not None, 'Training must provide a text prompt!'
-        
+        self.log(f"[INFO] Max Epochs {max_epochs}")
         # if self.use_tensorboardX and self.local_rank == 0:
         #     self.writer = tensorboardX.SummaryWriter(os.path.join(self.workspace, "run", self.name))
 
@@ -861,8 +891,11 @@ class Trainer(object):
                 pred_depth = preds_depth.reshape(1, self.opt.H, self.opt.W, 1).permute(0, 3, 1, 2).contiguous() # [1, 1, H, W]
                 preds = preds.reshape(1, self.opt.H, self.opt.W, 3).permute(0, 3, 1, 2).contiguous() # [1, 1, H, W]
 
-                save_image(pred_depth, save_path_depth)
-                save_image(preds, save_path)
+                vis = (preds, pred_depth)
+                grid_img = self.visualize_val(vis)
+                wandb.log({"val/GT_pred rgb": wandb.Image(grid_img)})
+                # save_image(pred_depth, save_path_depth)
+                # save_image(preds, save_path)
             
                 pbar.update(loader.batch_size)
 
