@@ -587,8 +587,8 @@ class Trainer(object):
     def visualize_train(self, vis, de = False):
         if not de:
             (pred_rgb, gt_rgb, pred_depth, depth_pred_mask) = vis
-            pred_depth = self.depth_visualize(pred_depth)
-            depth_pred_mask = self.depth_visualize(depth_pred_mask)
+            pred_depth = self.depth_visualize(pred_depth).to(pred_rgb.device)
+            depth_pred_mask = self.depth_visualize(depth_pred_mask).to(pred_rgb.device)
             stack = torch.stack([pred_rgb, gt_rgb, pred_depth, depth_pred_mask])  # (6, 3, H, W)
         else:
 
@@ -606,7 +606,7 @@ class Trainer(object):
     def visualize_val(self, vis):
         (pred_rgb, pred_depth) = vis
 
-        pred_depth = self.depth_visualize(pred_depth)
+        pred_depth = self.depth_visualize(pred_depth).to(pred_rgb.device)
         stack = torch.stack([pred_rgb, pred_depth])
 
         grid = make_grid(stack, nrow=1)
